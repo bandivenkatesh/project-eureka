@@ -1,5 +1,3 @@
-// This Jenkinsfile is for Eureka Deployment 
-
 pipeline {
     agent {
         label 'k8s-slave'
@@ -17,13 +15,10 @@ pipeline {
         APPLICATION_NAME = "eureka" 
         SONAR_TOKEN = credentials('sonar_creds')
         SONAR_URL = "http://34.68.98.190:9000"
-        // https://www.jenkins.io/doc/pipeline/steps/pipeline-utility-steps/#readmavenpom-read-a-maven-project-file
-        // If any errors with readMavenPom, make sure pipeline-utility-steps plugin is installed in your jenkins, if not do install it
-        // http://34.139.130.208:8080/scriptApproval/
         POM_VERSION = readMavenPom().getVersion()
         POM_PACKAGING = readMavenPom().getPackaging()
         DOCKER_HUB = "docker.io/venky2222"
-        DOCKER_CREDS = credentials('dockerhub_creds') //username and password
+        DOCKER_CREDS = credentials('dockerhub_creds')
         dev_ip = "10.2.0.4"
         MAVEN_OPTS = '-Dmaven.repo.local=.m2/repository -Xmx1024m'
         APP_PORT = '8761'
@@ -35,7 +30,7 @@ pipeline {
                 withEnv(["MAVEN_OPTS=-Dmaven.repo.local=${WORKSPACE}/.m2/repository"]) {
                     sh '''
                         mkdir -p ${WORKSPACE}/.m2/repository
-                        mvn -B clean package -DskipTests=true -V
+                        mvn -B clean install -DskipTests=true -V
                     '''
                 }
             }
@@ -71,7 +66,7 @@ pipeline {
                     retry(2) {
                         docker.withRegistry('https://docker.io', 'dockerhub_creds') {
                             dockerImage = docker.build("${env.DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT}", 
-                                "--no-cache --build-arg JAR_SOURCE=i27-${env.APPLICATION_NAME}-${env.POM_VERSION}.${env.POM_PACKAGING} ./.cicd")
+                                "--no-cache --build-arg JAR_SOURCE=target/${env.APPLICATION_NAME}-${env.POM_VERSION}.${env.POM_PACKAGING} ./.cicd")
                             dockerImage.push()
                         }
                     }
