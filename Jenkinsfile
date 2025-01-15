@@ -19,6 +19,7 @@ pipeline {
         POM_PACKAGING = readMavenPom().getPackaging()
         DOCKER_HUB = "docker.io/venky2222"
         DOCKER_CREDS = credentials('dockerhub_creds') //username and password
+        dev_ip = "10.2.0.4"
     }
     stages {
         stage ('Build') {
@@ -38,7 +39,7 @@ pipeline {
                         -Dsonar.login=${SONAR_TOKEN}
                     """
                 }
-                timeout (time: 3, unit: 'MINUTES'){
+                timeout (time: 2, unit: 'MINUTES'){
                     waitForQualityGate abortPipeline: true
                 }
 
@@ -62,14 +63,52 @@ pipeline {
                   echo "************************ Login to Docker Registry ************************"
                   docker login -u ${DOCKER_CREDS_USR} -p ${DOCKER_CREDS_PSW}
                   docker push ${env.DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT}
-                  echo "************************* Docker Image Pushed to Docker Hub *************************"
-                  echo "*************************   PIPELINE SUCCESSFULLY EXECUTED   *************************"
                 """
 
             } 
         }
+        stage ('Deploy to Dev') {
+            steps {
+                echo "Deploying to Dev Server"
+                withCredentials([usernamePassword(credentialsId: 'venky_ssh_docker_server_creds', passwordVariable: 'PASSWORD', usernameVariable: 'USERNAME')]) {
+                    script {
+                        sh "sshpass -p '$PASSWORD' -v ssh -o StrictHostKeyChecking=no $USERNAME@$dev_ip \"docker pull ${env.DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT}\""
+                        try {
+                            // Stop the Container
+                            sh "sshpass -p '$PASSWORD' -v ssh -o StrictHostKeyChecking=no $USERNAME@$dev_ip docker stop ${env.APPLICATION_NAME}-dev"
+                            // Remove the Container
+                            sh "sshpass -p '$PASSWORD' -v ssh -o StrictHostKeyChecking=no $USERNAME@$dev_ip docker rm ${env.APPLICATION_NAME}-dev"
+                        }
+                        catch(err) {
+                            echo "Error Caught: $err"
+                        }
+
+                        // Create the container
+                        sh "sshpass -p '$PASSWORD' -v ssh -o StrictHostKeyChecking=no $USERNAME@$dev_ip docker run -dit --name ${env.APPLICATION_NAME}-dev -p 5761:8761 ${env.DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT}"
+                    }   
+                }
+                // create a container 
+                // docker container create imagename 
+                // docker run -dit --name containerName imageName 
+                // docker run -dit --name eureka-dev
+                // docker run -dit --name eureka-test
+                // docker run -dit --name eureka-stage
+                // docker run -dit --name eureka-prod
+                // docker run -dit --name ${env.APPLICATION_NAME}-dev -p 5761:8761 ${env.DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT}
+
+
+            }
+        }
     }
 }
+
+// Eureka 
+// continer port" 8761
+
+// dev hp: 5761
+// tst hp: 6761
+// stg hp: 7761
+// prod hp: 8761
 
 
 
