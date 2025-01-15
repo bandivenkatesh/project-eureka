@@ -62,6 +62,8 @@ pipeline {
                   echo "************************ Login to Docker Registry ************************"
                   docker login -u ${DOCKER_CREDS_USR} -p ${DOCKER_CREDS_PSW}
                   docker push ${env.DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT}
+                  echo "************************* Docker Image Pushed to Docker Hub *************************"
+                  echo "*************************   PIPELINE SUCCESSFULLY EXECUTED   *************************"
                 """
 
             } 
