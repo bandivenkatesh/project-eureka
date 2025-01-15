@@ -1,4 +1,4 @@
-// This Jenkinsfile is for Eureka Deployment with SonarQube Integration
+// This Jenkinsfile is for Eureka Deployment 
 
 pipeline {
     agent {
@@ -9,29 +9,54 @@ pipeline {
         jdk 'JDK-17'
     }
     environment {
-        APPLICATION_NAME = "eureka"
-        SONAR_TOKEN = credentials('sonar_cred')  // SonarQube token stored in Jenkins credentials
-        SONAR_URL = "http://34.68.98.190:9000"
-        DOCKER_HUB = "docker.io/venky2222"
-        DOCKER_CREDS = credentials('dockerhub_creds') // DockerHub credentials
+        APPLICATION_NAME = "eureka" 
+        SONAR_TOKEN = credentials('sonar_creds')
+        SONAR_URL = "http://34.55.191.104:9000"
+        // https://www.jenkins.io/doc/pipeline/steps/pipeline-utility-steps/#readmavenpom-read-a-maven-project-file
+        // If any errors with readMavenPom, make sure pipeline-utility-steps plugin is installed in your jenkins, if not do install it
+        // http://34.139.130.208:8080/scriptApproval/
+        POM_VERSION = readMavenPom().getVersion()
+        POM_PACKAGING = readMavenPom().getPackaging()
+        DOCKER_HUB = "docker.io/i27devopsb4"
+        DOCKER_CREDS = credentials('dockerhub_creds') //username and password
     }
     stages {
-        stage('Build') {
+        stage ('Build') {
             steps {
                 echo "Building the ${env.APPLICATION_NAME} Application"
                 sh 'mvn clean package -DskipTests=true'
             }
         }
-        stage('Sonar Scan') {
+        stage ('Sonar') {
             steps {
                 echo "Starting Sonar Scans"
-                sh """
-                mvn sonar:sonar \
-                    -Dsonar.projectKey=${env.APPLICATION_NAME} \
-                    -Dsonar.host.url=${env.SONAR_URL} \
-                    -Dsonar.login=${env.SONAR_TOKEN}
-                """
+                withSonarQubeEnv('SonarQube'){ // The name u saved in system under manage jenkins
+                    sh """
+                    mvn  sonar:sonar \
+                        -Dsonar.projectKey=i27-eureka \
+                        -Dsonar.host.url=${env.SONAR_URL} \
+                        -Dsonar.login=${SONAR_TOKEN}
+                    """
+                }
+                timeout (time: 2, unit: 'MINUTES'){
+                    waitForQualityGate abortPipeline: true
+                }
+
             }
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
