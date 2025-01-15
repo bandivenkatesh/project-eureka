@@ -30,12 +30,18 @@ pipeline {
         HEALTH_CHECK_ENDPOINT = ':8761/actuator/health'
     }
     stages {
-        stage('Parallel Execution') {
+        stage('Build and Analysis') {
             parallel {
                 stage('Build') {
                     steps {
-                        cache(path: '.m2/repository') {
-                            sh 'mvn clean package -DskipTests=true -B -V'
+                        // Using MAVEN_OPTS for local repository
+                        withEnv(["MAVEN_OPTS=-Dmaven.repo.local=${WORKSPACE}/.m2/repository"]) {
+                            sh '''
+                                # Create local Maven repo directory
+                                mkdir -p ${WORKSPACE}/.m2/repository
+                                # Run Maven build with local repo
+                                mvn -B clean package -DskipTests=true -V
+                            '''
                         }
                     }
                 }
@@ -43,12 +49,14 @@ pipeline {
                     steps {
                         catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                             withSonarQubeEnv('SonarQube') {
-                                sh """
-                                mvn sonar:sonar \
-                                    -Dsonar.projectKey=i27-eureka \
-                                    -Dsonar.host.url=${env.SONAR_URL} \
-                                    -Dsonar.login=${SONAR_TOKEN}
-                                """
+                                withEnv(["MAVEN_OPTS=-Dmaven.repo.local=${WORKSPACE}/.m2/repository"]) {
+                                    sh '''
+                                        mvn sonar:sonar \
+                                        -Dsonar.projectKey=i27-eureka \
+                                        -Dsonar.host.url=${SONAR_URL} \
+                                        -Dsonar.login=${SONAR_TOKEN}
+                                    '''
+                                }
                             }
                             timeout(time: 2, unit: 'MINUTES') {
                                 waitForQualityGate abortPipeline: true
@@ -109,7 +117,9 @@ pipeline {
     }
     post {
         always {
-            cleanWs()
+            cleanWs(patterns: [
+                [pattern: '.m2/repository/**', type: 'INCLUDE']
+            ])
             sh 'docker system prune -f'
         }
         success {
