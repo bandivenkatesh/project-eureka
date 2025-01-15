@@ -10,7 +10,7 @@ pipeline {
     }
     environment {
         APPLICATION_NAME = "eureka"
-        SONAR_TOKEN = credentials('sonar_creds')  // SonarQube token stored in Jenkins credentials
+        SONAR_TOKEN = credentials('sonar_cred')  // SonarQube token stored in Jenkins credentials
         SONAR_URL = "http://34.68.98.190:9000"
         DOCKER_HUB = "docker.io/venky2222"
         DOCKER_CREDS = credentials('dockerhub_creds') // DockerHub credentials
