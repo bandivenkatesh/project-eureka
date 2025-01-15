@@ -1,0 +1,54 @@
+# Create a Deployment file for eureka in tst environment
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: i27-eureka-tst
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: i27-eureka-tst
+  template:
+    metadata:
+      labels:
+        app: i27-eureka-tst
+    spec:
+      imagePullSecrets:
+      - name: jfrog-docker-secret
+      containers:
+      - name: i27-eureka-tst
+        image: DIT # Docker Image Tag, which will be replaces later by sharedlib
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: i27-eureka-tst-svc
+spec:
+  selector:
+    app: i27-eureka-tst
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8761
+  type: ClusterIP
+
+---
+# Create a ingress for eureka-tst.i27carts.in
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: i27-eureka-tst-ingress
+spec:
+  rules:
+  - host: eureka-tst.i27carts.in
+    http:
+      paths: 
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: i27-eureka-tst-svc
+            port:
+              number: 80

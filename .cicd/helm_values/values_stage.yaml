@@ -1,0 +1,8 @@
+name: i27-eureka
+fullname: i27-eureka-stage
+replicas:
+  default: 2
+image:
+  name: i27devopsb4.jfrog.io/cont-images-docker-docker/eureka
+  tag: radom
+targetPort: 8761

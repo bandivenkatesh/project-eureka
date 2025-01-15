@@ -1,0 +1,51 @@
+# Create a Deployment file for eureka
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: i27-eureka-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: i27-eureka-dev
+  template:
+    metadata:
+      labels:
+        app: i27-eureka-dev
+    spec:
+      imagePullSecrets:
+      - name: jfrog-docker-secret
+      containers:
+      - name: i27-eureka-dev
+        image: DIT # Docker Image Tag, which will be replaces later by sharedlib
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: i27-eureka-dev-svc
+spec:
+  selector:
+    app: i27-eureka-dev
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8761
+  type: ClusterIP
+---
+# Create a ingress for eureka-dev.i27carts.in
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: i27-eureka-dev-ingress
+spec:
+  rules:
+  - host: eureka-dev.i27carts.in
+    http:
+      paths: 
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: i27-eureka-dev-svc
+            port:
+              number: 80
