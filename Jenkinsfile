@@ -30,42 +30,40 @@ pipeline {
         HEALTH_CHECK_ENDPOINT = ':8761/actuator/health'
     }
     stages {
-        stage('Build and Analysis') {
-            parallel {
-                stage('Build') {
-                    steps {
-                        // Using MAVEN_OPTS for local repository
+        stage('Build') {
+            steps {
+                withEnv(["MAVEN_OPTS=-Dmaven.repo.local=${WORKSPACE}/.m2/repository"]) {
+                    sh '''
+                        mkdir -p ${WORKSPACE}/.m2/repository
+                        mvn -B clean package -DskipTests=true -V
+                    '''
+                }
+            }
+        }
+        
+        stage('Sonar Analysis') {
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    withSonarQubeEnv('SonarQube') {
                         withEnv(["MAVEN_OPTS=-Dmaven.repo.local=${WORKSPACE}/.m2/repository"]) {
                             sh '''
-                                # Create local Maven repo directory
-                                mkdir -p ${WORKSPACE}/.m2/repository
-                                # Run Maven build with local repo
-                                mvn -B clean package -DskipTests=true -V
+                                mvn sonar:sonar \
+                                -Dsonar.projectKey=i27-eureka \
+                                -Dsonar.host.url=${SONAR_URL} \
+                                -Dsonar.login=${SONAR_TOKEN} \
+                                -Dsonar.java.binaries=target/classes \
+                                -Dsonar.sources=src/main/java \
+                                -Dsonar.java.libraries=${WORKSPACE}/.m2/repository/**/*.jar
                             '''
                         }
                     }
-                }
-                stage('Sonar Analysis') {
-                    steps {
-                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                            withSonarQubeEnv('SonarQube') {
-                                withEnv(["MAVEN_OPTS=-Dmaven.repo.local=${WORKSPACE}/.m2/repository"]) {
-                                    sh '''
-                                        mvn sonar:sonar \
-                                        -Dsonar.projectKey=i27-eureka \
-                                        -Dsonar.host.url=${SONAR_URL} \
-                                        -Dsonar.login=${SONAR_TOKEN}
-                                    '''
-                                }
-                            }
-                            timeout(time: 2, unit: 'MINUTES') {
-                                waitForQualityGate abortPipeline: true
-                            }
-                        }
+                    timeout(time: 2, unit: 'MINUTES') {
+                        waitForQualityGate abortPipeline: true
                     }
                 }
             }
         }
+        
         stage('Docker Build and Push') {
             steps {
                 script {
