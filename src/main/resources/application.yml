@@ -2,6 +2,8 @@ server:
   port: 8761
   ssl:
     enabled: false  # Enable this and provide keystore details for production
+  servlet:
+    context-path: /
 
 spring:
   application:
@@ -19,13 +21,21 @@ spring:
   freemarker:
     template-loader-path: classpath:/templates/
     prefer-file-system-access: false
+  web:
+    resources:
+      static-locations: classpath:/static/
+      chain:
+        strategy:
+          content:
+            enabled: true
+            paths: /**
 
 eureka:
   client:
     registerWithEureka: false
     fetchRegistry: false
     serviceUrl:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: http://localhost:${server.port}/eureka/
   server:
     waitTimeInMsWhenSyncEmpty: 0
     enableSelfPreservation: false  # Disable in development, enable in production
@@ -37,7 +47,7 @@ eureka:
     leaseExpirationDurationInSeconds: 90
   dashboard:
     enabled: true
-    path: /dashboard
+    path: /
     template-location: classpath:/templates/eureka/
 
 management:
@@ -45,6 +55,7 @@ management:
     web:
       exposure:
         include: "*"
+      base-path: /actuator
   endpoint:
     health:
       show-details: always

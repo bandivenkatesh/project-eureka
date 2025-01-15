@@ -20,12 +20,46 @@ pipeline {
         DOCKER_HUB = "docker.io/venky2222"
         DOCKER_CREDS = credentials('dockerhub_creds') //username and password
         dev_ip = "10.2.0.4"
+        // Add Maven specific environment variables
+        MAVEN_OPTS = '-Dmaven.repo.local=.m2/repository -XX:+TieredCompilation -XX:TieredStopAtLevel=1'
+    }
+    options {
+        // Add build options
+        timestamps()
+        timeout(time: 1, unit: 'HOURS')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        disableConcurrentBuilds()
     }
     stages {
+        stage ('Initialize') {
+            steps {
+                script {
+                    // Clean workspace but preserve Maven cache
+                    sh '''
+                        if [ ! -d .m2/repository ]; then
+                            mkdir -p .m2/repository
+                        fi
+                    '''
+                }
+            }
+        }
         stage ('Build') {
             steps {
                 echo "Building the ${env.APPLICATION_NAME} Application"
-                sh 'mvn clean package -DskipTests=true'
+                sh '''
+                    echo "Maven build starting..."
+                    mvn -B -U clean package \
+                        -DskipTests=true \
+                        -Dmaven.test.failure.ignore=true \
+                        -T 1C \
+                        --fail-at-end
+                    echo "Maven build completed"
+                '''
+            }
+            post {
+                success {
+                    archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
+                }
             }
         }
         stage ('Sonar') {
@@ -43,6 +77,19 @@ pipeline {
                     waitForQualityGate abortPipeline: true
                 }
 
+            }
+        }
+        stage ('Run Tests') {
+            steps {
+                sh '''
+                    echo "Running unit tests..."
+                    mvn test
+                '''
+            }
+            post {
+                always {
+                    junit '**/target/surefire-reports/*.xml'
+                }
             }
         }
         stage ('Docker Build and Push') {
@@ -95,6 +142,18 @@ pipeline {
                 // docker run -dit --name eureka-prod
                 // docker run -dit --name ${env.APPLICATION_NAME}-dev -p 1234:8761 ${env.DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT}
             }
+        }
+    }
+    post {
+        always {
+            // Cleanup workspace but preserve Maven cache
+            cleanWs(patterns: [[pattern: '.m2/repository/**', type: 'EXCLUDE']])
+        }
+        success {
+            echo "Build successful! Artifact: i27-${env.APPLICATION_NAME}-${env.POM_VERSION}.${env.POM_PACKAGING}"
+        }
+        failure {
+            echo 'Build failed! Check logs for details.'
         }
     }
 }
