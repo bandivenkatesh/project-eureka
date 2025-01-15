@@ -1,5 +1,6 @@
 server:
   port: 8761
+  address: 0.0.0.0
   ssl:
     enabled: false  # Enable this and provide keystore details for production
 
@@ -12,6 +13,11 @@ spring:
       password: ${EUREKA_PASSWORD:strongpassword}
   mvc:
     static-path-pattern: /**
+    cors:
+      allowed-origins: "*"
+      allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+      allowed-headers: "*"
+      allow-credentials: true
   resources:
     static-locations: classpath:/static/
     cache:
@@ -25,16 +31,19 @@ eureka:
     registerWithEureka: false
     fetchRegistry: false
     serviceUrl:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
   server:
     waitTimeInMsWhenSyncEmpty: 0
     enableSelfPreservation: false  # Disable in development, enable in production
     renewalPercentThreshold: 0.85
   instance:
-    hostname: localhost
+    hostname: ${EUREKA_HOST:localhost}
     preferIpAddress: true
     leaseRenewalIntervalInSeconds: 30
     leaseExpirationDurationInSeconds: 90
+    statusPageUrl: http://${eureka.instance.hostname}:${server.port}/info
+    healthCheckUrl: http://${eureka.instance.hostname}:${server.port}/health
+    homePageUrl: http://${eureka.instance.hostname}:${server.port}/
   dashboard:
     enabled: true
     path: /dashboard
