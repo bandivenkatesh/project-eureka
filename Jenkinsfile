@@ -17,7 +17,7 @@ pipeline {
         // http://34.139.130.208:8080/scriptApproval/
         POM_VERSION = readMavenPom().getVersion()
         POM_PACKAGING = readMavenPom().getPackaging()
-        DOCKER_HUB = "docker.io/i27devopsb4"
+        DOCKER_HUB = "docker.io/venky2222"
         DOCKER_CREDS = credentials('dockerhub_creds') //username and password
     }
     stages {
