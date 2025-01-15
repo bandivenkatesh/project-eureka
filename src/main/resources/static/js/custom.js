@@ -44,13 +44,43 @@ function updateDashboardData(data) {
     const instancesGrid = document.getElementById('instances-grid');
     instancesGrid.innerHTML = '';
     
-    data.applications.application.forEach((app, index) => {
+    if (!data.applications || !data.applications.application) {
+        instancesGrid.innerHTML = '<div class="no-instances">No instances found</div>';
+        return;
+    }
+    
+    const applications = Array.isArray(data.applications.application) ? 
+        data.applications.application : [data.applications.application];
+    
+    applications.forEach((app, index) => {
         const instanceElement = createInstanceElement(app);
         instanceElement.style.animationDelay = `${index * 0.1}s`;
         instancesGrid.appendChild(instanceElement);
     });
     
     updateStatistics(data);
+}
+
+function createInstanceElement(app) {
+    const div = document.createElement('div');
+    div.className = 'instance-item';
+    div.innerHTML = `
+        <h3>${app.name}</h3>
+        <div class="instance-details">
+            <p>Status: <span class="status-${app.instance[0].status.toLowerCase()}">${app.instance[0].status}</span></p>
+            <p>Instances: ${app.instance.length}</p>
+        </div>
+    `;
+    return div;
+}
+
+function updateStatistics(data) {
+    const totalApps = data.applications.application.length;
+    const totalInstances = data.applications.application.reduce((acc, app) => 
+        acc + (Array.isArray(app.instance) ? app.instance.length : 1), 0);
+    
+    document.getElementById('total-apps').textContent = totalApps;
+    document.getElementById('total-instances').textContent = totalInstances;
 }
 
 // Utility functions

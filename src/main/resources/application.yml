@@ -3,10 +3,11 @@ server:
   address: 0.0.0.0
   ssl:
     enabled: false  # Enable this and provide keystore details for production
+  forward-headers-strategy: framework
 
 spring:
   application:
-    name: eureka
+    name: eureka-server
   security:
     user:
       name: admin
@@ -18,6 +19,8 @@ spring:
       allowed-methods: GET,POST,PUT,DELETE,OPTIONS
       allowed-headers: "*"
       allow-credentials: true
+    pathmatch:
+      matching-strategy: ant_path_matcher
   resources:
     static-locations: classpath:/static/
     cache:
@@ -36,14 +39,17 @@ eureka:
     waitTimeInMsWhenSyncEmpty: 0
     enableSelfPreservation: false  # Disable in development, enable in production
     renewalPercentThreshold: 0.85
+    response-cache-update-interval-ms: 1000
   instance:
     hostname: ${EUREKA_HOST:localhost}
     preferIpAddress: true
     leaseRenewalIntervalInSeconds: 30
     leaseExpirationDurationInSeconds: 90
-    statusPageUrl: http://${eureka.instance.hostname}:${server.port}/info
-    healthCheckUrl: http://${eureka.instance.hostname}:${server.port}/health
+    statusPageUrl: http://${eureka.instance.hostname}:${server.port}/actuator/info
+    healthCheckUrl: http://${eureka.instance.hostname}:${server.port}/actuator/health
     homePageUrl: http://${eureka.instance.hostname}:${server.port}/
+    non-secure-port-enabled: true
+    secure-port-enabled: false
   dashboard:
     enabled: true
     path: /dashboard
