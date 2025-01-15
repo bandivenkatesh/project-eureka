@@ -1,0 +1,55 @@
+# Create a deployment for eureka in stage environment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: i27-eureka-stage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: i27-eureka-stage
+  template:
+    metadata:
+      labels:
+        app: i27-eureka-stage
+    spec:
+      imagePullSecrets:
+      - name: jfrog-docker-secret
+      containers:
+      - name: i27-eureka-stage
+        image: DIT # Docker Image Tag, which will be replaces later by sharedlib
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: i27-eureka-stage-svc
+spec:
+  selector:
+    app: i27-eureka-stage
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8761
+  type: ClusterIP
+
+---
+
+# Create a ingress for eureka-stage.i27carts.in
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: i27-eureka-stage-ingress
+spec:
+  rules:
+  - host: eureka-stage.i27carts.in
+    http:
+      paths: 
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: i27-eureka-stage-svc
+            port:
+              number: 80
