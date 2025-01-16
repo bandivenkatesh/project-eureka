@@ -132,24 +132,54 @@ def dockerBuildAndPush(){
 // Method for deploying containers in diff env
 def dockerDeploy(envDeploy, hostPort, contPort){
     return {
-        echo "Deploying to $envDeploy Environmnet"
-            withCredentials([usernamePassword(credentialsId: 'venky_ssh_docker_server_creds', passwordVariable: 'PASSWORD', usernameVariable: 'USERNAME')]) {
-                script {
-                    sh "sshpass -p '$PASSWORD' -v ssh -o StrictHostKeyChecking=no $USERNAME@$dev_ip \"docker pull ${env.DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT}\""
-                    try {
-                        // Stop the Container
-                        sh "sshpass -p '$PASSWORD' -v ssh -o StrictHostKeyChecking=no $USERNAME@$dev_ip docker stop ${env.APPLICATION_NAME}-$envDeploy"
-                        // Remove the Container
-                        sh "sshpass -p '$PASSWORD' -v ssh -o StrictHostKeyChecking=no $USERNAME@$dev_ip docker rm ${env.APPLICATION_NAME}-$envDeploy"
-                    }
-                    catch(err) {
-                        echo "Error Caught: $err"
-                    }
+        echo "Deploying to $envDeploy Environment"
+        withCredentials([usernamePassword(credentialsId: 'venky_ssh_docker_server_creds', 
+                                        passwordVariable: 'PASSWORD', 
+                                        usernameVariable: 'USERNAME')]) {
+            script {
+                // Pull the image
+                sh "sshpass -p '$PASSWORD' -v ssh -o StrictHostKeyChecking=no $USERNAME@$dev_ip \"docker pull ${env.DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT}\""
+                
+                try {
+                    // Stop and remove existing container
+                    sh """
+                        sshpass -p '$PASSWORD' -v ssh -o StrictHostKeyChecking=no $USERNAME@$dev_ip \"
+                        docker stop ${env.APPLICATION_NAME}-$envDeploy || true
+                        docker rm ${env.APPLICATION_NAME}-$envDeploy || true
+                        \"
+                    """
+                } catch(err) {
+                    echo "Container cleanup error: $err"
+                }
 
-                    // Create the container
-                    sh "sshpass -p '$PASSWORD' -v ssh -o StrictHostKeyChecking=no $USERNAME@$dev_ip docker run -dit --name ${env.APPLICATION_NAME}-$envDeploy -p $hostPort:$contPort ${env.DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT}"
-                }   
-            }
+                // Create new container with proper networking
+                sh """
+                    sshpass -p '$PASSWORD' -v ssh -o StrictHostKeyChecking=no $USERNAME@$dev_ip \"
+                    docker run -d --name ${env.APPLICATION_NAME}-$envDeploy \
+                    -p $hostPort:$contPort \
+                    --network host \
+                    -e SPRING_PROFILES_ACTIVE=$envDeploy \
+                    -e SERVER_PORT=$contPort \
+                    -e EUREKA_INSTANCE_HOSTNAME=localhost \
+                    -e EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://localhost:$hostPort/eureka/ \
+                    --restart unless-stopped \
+                    --memory=512m \
+                    --cpu-shares=512 \
+                    ${env.DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT}
+                    \"
+                """
+
+                // Health check
+                retry(5) {
+                    sleep 20
+                    sh """
+                        sshpass -p '$PASSWORD' -v ssh -o StrictHostKeyChecking=no $USERNAME@$dev_ip \"
+                        curl -f http://localhost:$hostPort/actuator/health || exit 1
+                        \"
+                    """
+                }
+            }   
+        }
     }
 }
 
