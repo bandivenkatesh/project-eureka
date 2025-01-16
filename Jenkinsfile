@@ -1,4 +1,4 @@
-/ Call the Shared Lib
+// Call the Shared Lib
 
 @Library("com.i27academy.slb@master") _
 dockerPipeline(
