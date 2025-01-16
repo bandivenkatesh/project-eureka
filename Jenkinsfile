@@ -6,9 +6,9 @@ dockerPipeline(
     devHostPort: '1235',
     tstHostPort: '1234',
     stgHostPort: '1236',
-    prdHostPort: '1237'
-   // contPort: '8761',
-  //  hostPort: '9761'
+    prdHostPort: '1237',
+    contPort: '8761',
+    hostPort: '9761'
 )
 
 // changes made
