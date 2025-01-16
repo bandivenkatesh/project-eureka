@@ -62,17 +62,14 @@ pipeline {
         stage('Docker Build and Push') {
             steps {
                 script {
-                    def dockerImage
-                    retry(2) {
-                        docker.withRegistry('https://docker.io', 'dockerhub_creds') {
-                            dockerImage = docker.build("${env.DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT}", 
-                                "--no-cache --build-arg JAR_SOURCE=target/${env.APPLICATION_NAME}-${env.POM_VERSION}.${env.POM_PACKAGING} ./.cicd")
-                            dockerImage.push()
-                        }
+                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub_creds') {
+                        def customImage = docker.build("${env.DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT}", "--no-cache --build-arg JAR_SOURCE=target/${env.APPLICATION_NAME}-${env.POM_VERSION}.${env.POM_PACKAGING} ./.cicd")
+                        customImage.push()
                     }
                 }
             }
         }
+        
         stage('Deploy to feature') {
             steps {
                 script {
