@@ -3,8 +3,8 @@
 @Library("com.i27academy.slb@main") _
 dockerPipeline(
     appName: 'eureka',
-    devHostPort: '1235',
-    tstHostPort: '1234',
+    devHostPort: '1234',
+    tstHostPort: '1235',
     stgHostPort: '1236',
     prdHostPort: '1237',
     contPort: '8761'
