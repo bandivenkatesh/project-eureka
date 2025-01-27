@@ -30,7 +30,7 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 8761
-  type: ClusterIP
+  type: NodePort
 ---
 # Create a ingress for eureka-dev.i27carts.in
 apiVersion: networking.k8s.io/v1
