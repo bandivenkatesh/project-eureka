@@ -5,7 +5,6 @@ k8sPipeline(
     appName: 'eureka'
 )
    // hostPort: '9761'
-)
 
 // changes made
 // changes again
