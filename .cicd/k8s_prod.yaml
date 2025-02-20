@@ -39,7 +39,7 @@ metadata:
   name: i27-eureka-prod-ingress
 spec:
   rules:
-  - host: eureka-prod.i27carts.in
+  - host: eureka-prod.qntmai.space
     http:
       paths: 
       - pathType: Prefix

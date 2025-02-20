@@ -43,7 +43,7 @@ metadata:
   name: i27-eureka-stage-ingress
 spec:
   rules:
-  - host: eureka-stage.i27carts.in
+  - host: eureka-stage.qntmai.space
     http:
       paths: 
       - pathType: Prefix

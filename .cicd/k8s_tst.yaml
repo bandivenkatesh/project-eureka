@@ -42,7 +42,7 @@ metadata:
   name: i27-eureka-tst-ingress
 spec:
   rules:
-  - host: eureka-tst.i27carts.in
+  - host: eureka-tst.qntmai.space
     http:
       paths: 
       - pathType: Prefix
