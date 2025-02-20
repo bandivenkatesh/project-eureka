@@ -48,4 +48,4 @@ spec:
           service:
             name: i27-eureka-dev-svc
             port:
-              number: 80
+              number: 8761
